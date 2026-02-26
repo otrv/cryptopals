@@ -117,19 +117,28 @@ func main() {
 		panic(err)
 	}
 
-	lines := bytes.Split(file, []byte{'\n'})
+	file = bytes.TrimRight(file, "\n")
 
-	decryptedLines := make([][]byte, len(lines))
-	for idx, line := range lines {
-		decoded, err := hex.DecodeString(string(line))
-		if err != nil {
-			panic(err)
+	cypher := make([]byte, len(file))
+	for i := range len(file) {
+		switch i % 3 {
+		case 0:
+			cypher[i] = 'I'
+		case 1:
+			cypher[i] = 'C'
+		case 2:
+			cypher[i] = 'E'
 		}
-		decryptedLines[idx] = decryptSingleByteXor(decoded)
-		fmt.Println(string(decryptedLines[idx]))
 	}
 
-	topIdx := findMostEnglish(decryptedLines)
+	encrypted, err := fixedXor(file, cypher)
+	if err != nil {
+		panic(err)
+	}
 
-	fmt.Println(string(decryptedLines[topIdx]))
+	fmt.Println("Original Input Len:", len(file))
+	fmt.Println("Cypher:            ", string(cypher))
+	fmt.Println("Cypher Len:        ", len(cypher))
+	fmt.Println("Encrypted Len:     ", len(encrypted))
+	fmt.Println("Encrypted:         ", hex.EncodeToString(encrypted))
 }
