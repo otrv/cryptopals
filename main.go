@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/aes"
-	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
@@ -16,17 +16,39 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	file = bytes.TrimRight(file, "\n")
 
-	input, err := base64.StdEncoding.DecodeString(string(file))
-	if err != nil {
-		panic(err)
+	lines := bytes.Split(file, []byte("\n"))
+	maxRepeats := -1
+	maxIdx := -1
+	for idx, line := range lines {
+		normalized := bytes.TrimRight(line, "\n")
+		decoded, err := hex.DecodeString(string(normalized))
+		if err != nil {
+			panic(err)
+		}
+
+		size := 16
+		blocks := [][]byte{}
+		for i := range len(decoded) / size {
+			blocks = append(blocks, decoded[i*size:(i+1)*size])
+		}
+
+		repeats := 0
+		for i := 0; i < len(blocks); i++ {
+			for z := 1; z < len(blocks); z++ {
+				if bytes.Equal(blocks[i], blocks[z]) {
+					repeats++
+				}
+			}
+		}
+
+		if repeats > maxRepeats {
+			maxRepeats = repeats
+			maxIdx = idx
+		}
 	}
 
-	key := []byte("YELLOW SUBMARINE")
-	decrypted := DecryptAES128ECB(input, key)
-
-	fmt.Println("Decrypted:\n", string(decrypted))
+	fmt.Println(string(lines[maxIdx]))
 }
 
 func FixedXor(a []byte, b []byte) ([]byte, error) {
