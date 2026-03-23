@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/aes"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -9,6 +10,24 @@ import (
 	"os"
 	"slices"
 )
+
+func main() {
+	file, err := os.ReadFile("./input.txt")
+	if err != nil {
+		panic(err)
+	}
+	file = bytes.TrimRight(file, "\n")
+
+	input, err := base64.StdEncoding.DecodeString(string(file))
+	if err != nil {
+		panic(err)
+	}
+
+	key := []byte("YELLOW SUBMARINE")
+	decrypted := DecryptAES128ECB(input, key)
+
+	fmt.Println("Decrypted:\n", string(decrypted))
+}
 
 func FixedXor(a []byte, b []byte) ([]byte, error) {
 	if len(a) != len(b) {
@@ -207,23 +226,18 @@ func BreakRepeatingKeyXor(in []byte) ([]byte, []byte, error) {
 	return encrypted, key, nil
 }
 
-func main() {
-	file, err := os.ReadFile("./input.txt")
-	if err != nil {
-		panic(err)
-	}
-	file = bytes.TrimRight(file, "\n")
-
-	input, err := base64.StdEncoding.DecodeString(string(file))
+func DecryptAES128ECB(input []byte, key []byte) []byte {
+	cipher, err := aes.NewCipher(key)
 	if err != nil {
 		panic(err)
 	}
 
-	encrypted, key, err := BreakRepeatingKeyXor(input)
-	if err != nil {
-		panic(err)
+	decrypted := make([]byte, len(input))
+	size := len(key)
+
+	for bs, be := 0, size; bs < len(input); bs, be = bs+size, be+size {
+		cipher.Decrypt(decrypted[bs:be], input[bs:be])
 	}
 
-	fmt.Println("Key:\n", string(key))
-	fmt.Println("Decrypted:\n", string(encrypted))
+	return decrypted
 }
