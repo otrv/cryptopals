@@ -3,52 +3,19 @@ package main
 import (
 	"bytes"
 	"crypto/aes"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
-	"os"
 	"slices"
 )
 
 func main() {
-	file, err := os.ReadFile("./input.txt")
+	out, err := Pkcs7([]byte("YELLOW SUBMARINE"), 20)
 	if err != nil {
 		panic(err)
 	}
 
-	lines := bytes.Split(file, []byte("\n"))
-	maxRepeats := -1
-	maxIdx := -1
-	for idx, line := range lines {
-		normalized := bytes.TrimRight(line, "\n")
-		decoded, err := hex.DecodeString(string(normalized))
-		if err != nil {
-			panic(err)
-		}
-
-		size := 16
-		blocks := [][]byte{}
-		for i := range len(decoded) / size {
-			blocks = append(blocks, decoded[i*size:(i+1)*size])
-		}
-
-		repeats := 0
-		for i := 0; i < len(blocks); i++ {
-			for z := 1; z < len(blocks); z++ {
-				if bytes.Equal(blocks[i], blocks[z]) {
-					repeats++
-				}
-			}
-		}
-
-		if repeats > maxRepeats {
-			maxRepeats = repeats
-			maxIdx = idx
-		}
-	}
-
-	fmt.Println(string(lines[maxIdx]))
+	fmt.Println(string(out))
 }
 
 func FixedXor(a []byte, b []byte) ([]byte, error) {
@@ -262,4 +229,20 @@ func DecryptAES128ECB(input []byte, key []byte) []byte {
 	}
 
 	return decrypted
+}
+
+func Pkcs7(in []byte, length int) ([]byte, error) {
+	inLen := len(in)
+	if inLen > length {
+		return nil, errors.New("input bigger then length")
+	}
+
+	diff := length - inLen
+	hexDiff := fmt.Sprintf("\\x%02x", diff)
+	out := in
+	for range diff {
+		out = append(out, []byte(hexDiff)...)
+	}
+
+	return out, nil
 }
